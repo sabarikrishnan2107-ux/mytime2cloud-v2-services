@@ -2,11 +2,10 @@ const { WebSocketServer, WebSocket } = require("ws");
 const { spawn } = require("child_process");
 const net = require("net");
 const axios = require("axios");
-require("dotenv").config();
 
-const PORT = process.env.PROXY_PORT || 8501;
-const LARAVEL_API = process.env.LARAVEL_API_URL || "http://localhost:8000/api";
-const LARAVEL_TOKEN = process.env.LARAVEL_API_TOKEN || "";
+const PORT = 8501;
+const LARAVEL_API = "https://v2backend.mytime2cloud.com/api";
+const LARAVEL_TOKEN = "";
 const BACKPRESSURE_LIMIT = 512 * 1024;
 const RESTART_DELAY_MS = 2000;
 const IDLE_TEARDOWN_MS = 10000;
@@ -25,7 +24,7 @@ const EOI = Buffer.from([0xff, 0xd9]);
 
 const HEARTBEAT_INTERVAL_MS = 25000; // 25 seconds
 
-const wss = new WebSocketServer({ port: PORT });
+const wss = new WebSocketServer({ port: PORT, host: "0.0.0.0" });
 const deviceStreams = new Map();
 
 // Heartbeat: ping all clients every 25s, terminate dead ones
@@ -37,7 +36,7 @@ setInterval(() => {
   });
 }, HEARTBEAT_INTERVAL_MS);
 
-console.log(`Camera proxy running on ws://localhost:${PORT}`);
+console.log(`Camera proxy running on ws://0.0.0.0:${PORT}`);
 
 function parseDeviceId(pathname = "") {
   const segments = pathname.split("/").filter(Boolean);
