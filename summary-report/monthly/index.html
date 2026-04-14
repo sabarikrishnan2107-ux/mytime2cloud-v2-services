@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Landscape Monthly Attendance Summary PDF</title>
+
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+        rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#0f4c81",
+                        "primary-dark": "#0a365c",
+                        "secondary": "#f59e0b",
+                        "text-main": "#1e293b",
+                        "text-sub": "#64748b",
+                        "border-light": "#e2e8f0",
+                        "success": "#10b981",
+                        "danger": "#ef4444",
+                    },
+                    fontFamily: { "display": ["Manrope", "sans-serif"] },
+                    borderRadius: { "DEFAULT": "0.125rem", "lg": "0.375rem", "xl": "0.5rem" },
+                },
+            },
+        };
+    </script>
+
+    <style>
+        @page {
+            size: A4 landscape;
+            margin: 0;
+        }
+
+        body {
+            background-color: #525659;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem;
+            margin: 0;
+            gap: 2rem;
+        }
+
+        .page-container {
+            background-color: white;
+            width: 297mm;
+            height: 210mm;
+            padding: 12mm 15mm;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+            box-sizing: border-box;
+            position: relative;
+        }
+
+        /* ✅ IMPORTANT: enforce page breaks AFTER each page to avoid blank pages */
+        @media print {
+            body {
+                background: none;
+                padding: 0;
+                gap: 0;
+                display: block;
+            }
+
+            .page-container {
+                box-shadow: none;
+                margin: 0;
+                width: 100vw;
+                height: 100vh;
+                page-break-after: always;
+            }
+
+            .page-container:last-child {
+                page-break-after: auto;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .donut-chart-segment {
+            transition: stroke-width 0.2s ease;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            color: white;
+            font-size: 1.5rem;
+        }
+
+        .loading-overlay.hidden {
+            display: none;
+        }
+    </style>
+</head>
+
+<body class="antialiased font-display text-text-main text-sm">
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="text-center">
+            <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-white mx-auto mb-4"></div>
+            <p>Loading report data...</p>
+        </div>
+    </div>
+
+    <div class="no-print fixed top-4 right-4 z-50 flex gap-2">
+        <button onclick="window.print()"
+            class="bg-primary text-white px-4 py-2 rounded-lg font-bold shadow-lg hover:bg-primary-dark transition-all flex items-center gap-2">
+            <span class="material-symbols-outlined">print</span> Print
+        </button>
+        <button onclick="downloadPdf()"
+            class="bg-success text-white px-4 py-2 rounded-lg font-bold shadow-lg hover:opacity-90 transition-all flex items-center gap-2">
+            <span class="material-symbols-outlined">download</span> Download PDF
+        </button>
+        <!-- <button onclick="takeScreenshot()"
+            class="bg-secondary text-white px-4 py-2 rounded-lg font-bold shadow-lg hover:opacity-90 transition-all flex items-center gap-2">
+            <span class="material-symbols-outlined">photo_camera</span> Screenshot
+        </button> -->
+    </div>
+
+    <!-- PAGE 1 -->
+    <div class="page-container" id="page1">
+        <header class="flex items-end justify-between border-b-2 border-primary pb-3 mb-1 shrink-0">
+            <div class="flex flex-col gap-0.5">
+                <div class="flex items-center gap-2 mb-1">
+                    <div class="bg-primary text-white p-1.5 rounded-sm"><span
+                            class="material-symbols-outlined text-xl">analytics</span></div>
+                    <h1 class="text-lg font-bold text-primary uppercase tracking-wide" id="companyName">WorkDay
+                        Analytics</h1>
+                </div>
+                <h2 class="text-2xl font-bold text-text-main">Monthly Attendance Summary</h2>
+                <p class="text-text-sub text-xs" id="generatedDate">Generated on November 1st, 2023</p>
+            </div>
+            <div class="text-right">
+                <div>
+                    <span class="block text-[10px] text-text-sub uppercase tracking-wider">Reporting Period</span>
+                    <span class="block text-base font-bold text-primary" id="reportingPeriod">Loading...</span>
+                </div>
+            </div>
+        </header>
+
+        <section class="grid grid-cols-9 gap-3 shrink-0" id="statsContainer"></section>
+
+        <section class="border border-slate-200 rounded p-3 shrink-0">
+            <div class="flex items-center justify-between mb-2">
+                <div>
+                    <h3 class="text-xs font-bold uppercase tracking-wide text-text-main">Attendance Trends</h3>
+                    <p class="text-[10px] text-text-sub">Day-wise breakdown (Present vs Absent)</p>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-1.5"><span class="h-2 w-2 rounded-sm bg-primary"></span><span
+                            class="text-[10px] uppercase font-bold text-text-sub">Present</span></div>
+                    <div class="flex items-center gap-1.5"><span class="h-2 w-2 rounded-sm bg-slate-200"></span><span
+                            class="text-[10px] uppercase font-bold text-text-sub">Absent</span></div>
+                </div>
+            </div>
+            <div class="h-28 w-full flex items-end justify-between gap-1 px-1 border-l border-b border-slate-200"
+                id="trendsChart"></div>
+            <div class="flex justify-between w-full px-1 mt-1 text-[9px] text-text-sub" id="trendsLabels">
+            </div>
+        </section>
+
+        <section class="flex-1 min-h-0 grid grid-cols-2 gap-4">
+            <div class="border border-slate-200 rounded p-4 flex flex-col bg-white">
+                <div class="mb-4">
+                    <h3 class="text-xs font-bold uppercase tracking-wide text-text-main">Department Wise Analytics</h3>
+                    <p class="text-[10px] text-text-sub">Attendance percentage distribution</p>
+                </div>
+                <div class="flex-1 flex items-center justify-center gap-6">
+                    <div class="relative h-28 w-28">
+                        <svg class="w-full h-full transform -rotate-90" viewBox="0 0 36 36" id="donutChart">
+                            <path class="text-slate-100"
+                                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                                fill="none" stroke="currentColor" stroke-width="4.5"></path>
+                        </svg>
+                        <div class="absolute inset-0 flex items-center justify-center flex-col">
+                            <span class="text-2xl font-bold text-text-main" id="overallPercentage">96%</span>
+                            <span class="text-[9px] font-bold text-text-sub uppercase">Overall</span>
+                        </div>
+                    </div>
+                    <div class="flex flex-col gap-4 justify-center w-40" id="departmentBars"></div>
+                </div>
+            </div>
+
+            <div class="border border-slate-200 rounded p-0 flex flex-col bg-white overflow-hidden">
+                <div class="px-4 py-3 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
+                    <div>
+                        <h3 class="text-xs font-bold uppercase tracking-wide text-text-main">Top Punctuality</h3>
+                        <p class="text-[10px] text-text-sub">100% On-time employees</p>
+                    </div>
+                    <span class="material-symbols-outlined text-secondary text-lg">hotel_class</span>
+                </div>
+                <div class="flex-1 overflow-auto p-2">
+                    <table class="w-full text-left text-xs">
+                        <tbody class="divide-y divide-slate-100" id="punctualityList"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <footer
+            class="mt-auto pt-2 border-slate-200 flex justify-between items-center text-[10px] text-text-sub shrink-0">
+            <p>Confidential Document • Internal Use Only</p>
+            <p>Page 1 of <span id="totalPages1">3</span></p>
+        </footer>
+    </div>
+
+    <!-- PAGE 2 -->
+    <div class="page-container flex flex-col" id="page2">
+        <header class="flex items-end justify-between border-b-2 border-primary pb-3 mb-1 shrink-0">
+            <div class="flex flex-col gap-0.5">
+                <div class="flex items-center gap-2 mb-1">
+                    <div class="bg-primary text-white p-1.5 rounded-sm"><span
+                            class="material-symbols-outlined text-xl">analytics</span></div>
+                    <h1 class="text-lg font-bold text-primary uppercase tracking-wide" id="companyName2">WorkDay
+                        Analytics</h1>
+                </div>
+                <h2 class="text-2xl font-bold text-text-main">Monthly Attendance Summary</h2>
+                <p class="text-text-sub text-xs" id="generatedDate2">Generated on November 1st, 2023</p>
+            </div>
+            <div class="text-right">
+                <div>
+                    <span class="block text-[10px] font-semibold text-text-sub uppercase tracking-wider">Reporting
+                        Period</span>
+                    <span class="block text-base font-bold text-primary" id="reportingPeriod2">October 2023</span>
+                </div>
+            </div>
+        </header>
+
+        <section class="flex-1 flex flex-col justify-start">
+            <div class="flex items-center gap-2 mb-3">
+                <span class="material-symbols-outlined text-danger text-2xl">error</span>
+                <h3 class="text-lg font-bold text-text-main">Attention Required</h3>
+                <span
+                    class="bg-danger/10 text-danger text-xs px-2 py-0.5 rounded font-bold uppercase tracking-wider">Action
+                    Needed</span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div class="bg-red-50 border border-red-100 rounded-lg p-4 flex flex-col">
+                    <h4 class="text-red-800 font-bold text-sm mb-1 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-base">person_off</span> High Absenteeism (&gt;15%
+                        Absence)
+                    </h4>
+                    <div class="space-y-1" id="highAbsenteeismList"></div>
+                </div>
+                <div class="bg-amber-50 border border-amber-100 rounded-lg p-4 flex flex-col">
+                    <h4 class="text-amber-800 font-bold text-sm mb-1 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-base">history</span> Frequent Late Ins (&gt;3
+                        Occurrences)
+                    </h4>
+                    <div class="space-y-1" id="frequentLateInsList"></div>
+                </div>
+            </div>
+        </section>
+
+        <footer
+            class="mt-auto pt-2 border-t border-slate-200 flex justify-between items-center text-[10px] text-text-sub shrink-0">
+            <p>Confidential Document • Internal Use Only</p>
+            <p>Page 2 of <span id="totalPages2">3</span></p>
+        </footer>
+    </div>
+
+    <!-- PAGE 3 -->
+    <div class="page-container" id="page3">
+        <header class="flex items-end justify-between border-b-2 border-primary pb-3 mb-1 shrink-0">
+            <div class="flex flex-col gap-0.5">
+                <div class="flex items-center gap-2 mb-1">
+                    <div class="bg-primary text-white p-1.5 rounded-sm"><span
+                            class="material-symbols-outlined text-xl">analytics</span></div>
+                    <h1 class="text-lg font-bold text-primary uppercase tracking-wide">WorkDay Analytics</h1>
+                </div>
+                <h2 class="text-2xl font-bold text-text-main">Monthly Attendance Summary</h2>
+                <p class="text-text-sub text-xs" id="generatedDate3">Generated on November 1st, 2023</p>
+            </div>
+            <div class="text-right">
+                <div>
+                    <span class="block text-[10px] font-semibold text-text-sub uppercase tracking-wider">Reporting
+                        Period</span>
+                    <span class="block text-base font-bold text-primary" id="reportingPeriod3">October 2023</span>
+                </div>
+            </div>
+        </header>
+
+        <section class="flex-1 min-h-0 border border-slate-200 rounded p-0 overflow-hidden flex flex-col">
+            <div class="px-4 py-3 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
+                <h3 class="text-xs font-bold uppercase tracking-wide text-text-main">Detailed Employee Statistics</h3>
+                <span class="text-[10px] text-text-sub font-medium">Full report for active employees</span>
+            </div>
+
+            <div class="flex-1 overflow-auto">
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-slate-100 text-primary font-bold border-b border-slate-200 sticky top-0 z-10">
+                        <tr>
+                            <th class="px-4 py-2.5 w-[20%] bg-slate-100">Employee</th>
+                            <th class="px-2 py-2.5 text-center bg-slate-100">P</th>
+                            <th class="px-2 py-2.5 text-center bg-slate-100">A</th>
+                            <th class="px-2 py-2.5 text-center bg-slate-100">L</th>
+                            <th class="px-2 py-2.5 text-center bg-slate-100">M</th>
+                            <th class="px-2 py-2.5 text-center bg-slate-100">Avg CI</th>
+                            <th class="px-2 py-2.5 text-center bg-slate-100">Avg CO</th>
+                            <th class="px-2 py-2.5 text-center bg-slate-100">LI</th>
+                            <th class="px-2 py-2.5 text-center bg-slate-100">EO</th>
+                            <th class="px-2 py-2.5 text-center bg-slate-100">Avg WH</th>
+                            <th class="px-4 py-2.5 text-right bg-slate-100">WH</th>
+                            <th class="px-4 py-2.5 text-right bg-slate-100">Perf</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 text-text-main" id="employeeTableBody"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <footer
+            class="mt-auto pt-2 border-t border-slate-200 flex justify-between items-center text-[10px] text-text-sub shrink-0">
+            <p>Confidential Document • Internal Use Only</p>
+            <p>Page 3 of <span id="totalPages3">3</span></p>
+        </footer>
+    </div>
+
+    <div id="additionalPagesContainer"></div>
+
+    <script>
+        function getUrlParams() {
+            const params = new URLSearchParams(window.location.search);
+            return {
+                api_base: params.get('api_base') || 'https://backend.mytime2cloud.com/api',
+                company_id: params.get('company_id'),
+                from_date: params.get('from_date'),
+                to_date: params.get('to_date'),
+                branch_ids: params.get('branch_ids'),
+                department_ids: params.get('department_ids'),
+                shift_type_id: params.get('shift_type_id'),
+            };
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '';
+            const date = new Date(dateStr);
+            const day = date.getDate();
+            const suffix = ['th', 'st', 'nd', 'rd'][(day % 10 > 3 || Math.floor(day / 10) === 1) ? 0 : day % 10];
+            return date.toLocaleDateString('en-US', { month: 'long' }) + ' ' + day + suffix + ', ' + date.getFullYear();
+        }
+
+        function formatPeriodLabel(fromDate, toDate) {
+            if (!fromDate) return 'Current Period';
+            const from = new Date(fromDate);
+            const to = toDate ? new Date(toDate) : from;
+            const fromLabel = from.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+            const toLabel = to.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+            return fromLabel === toLabel ? fromLabel : fromLabel + ' - ' + toLabel;
+        }
+
+        function getInitials(name) {
+            if (!name) return 'NA';
+            return name.split(' ').filter(Boolean).slice(0, 2).map(p => (p[0] ? p[0].toUpperCase() : '')).join('') || 'NA';
+        }
+
+        function getPerformanceColor(rate) {
+            if (rate >= 90) return 'text-success';
+            if (rate >= 75) return 'text-secondary';
+            return 'text-danger';
+        }
+
+        function buildApiUrl(params) {
+            var url = new URL(params.api_base + '/company_stats_summary_payload');
+            if (params.company_id) url.searchParams.append('company_id', params.company_id);
+            if (params.from_date) url.searchParams.append('from_date', params.from_date);
+            if (params.to_date) url.searchParams.append('to_date', params.to_date);
+            if (params.shift_type_id) url.searchParams.append('shift_type_id', params.shift_type_id);
+            if (params.branch_ids) url.searchParams.append('branch_ids', params.branch_ids);
+            if (params.department_ids) url.searchParams.append('department_ids', params.department_ids);
+            url.searchParams.append('per_page', '500');
+            return url.toString();
+        }
+
+        function renderStats(stats) {
+            var container = document.getElementById('statsContainer');
+            var icons = {
+                'Total Staff': 'groups', 'Attendance': 'donut_large', 'Total Absent': 'person_off',
+                'Total Leave': 'flight_takeoff', 'Overtime': 'schedule', 'Late In': 'warning',
+                'EO': 'logout', 'Avg Hrs': 'timelapse', 'Manual Logs': 'edit_note',
+            };
+            container.innerHTML = (stats || []).slice(0, 9).map(function (stat) {
+                var trendUp = stat.trendUp;
+                var trendColor = stat.trend === '0%' ? 'text-slate-400' : (trendUp ? 'text-success' : 'text-danger');
+                var trendIcon = stat.trend === '0%' ? '' : (trendUp ? 'arrow_upward' : 'arrow_downward');
+                var icon = icons[stat.title] || 'info';
+                return (
+                    '<div class="flex flex-col p-2.5 rounded border border-slate-200 bg-slate-50">' +
+                    '<div class="flex items-center justify-between mb-1">' +
+                    '<p class="text-text-sub text-[10px] font-bold uppercase tracking-wide">' + stat.title + '</p>' +
+                    '<span class="material-symbols-outlined text-primary/40 text-base">' + icon + '</span>' +
+                    '</div>' +
+                    '<div class="mt-auto">' +
+                    '<p class="text-xl font-bold text-text-main leading-none">' + stat.value + '</p>' +
+                    '<span class="text-[10px] font-bold ' + trendColor + ' flex items-center mt-0.5">' +
+                    (trendIcon ? '<span class="material-symbols-outlined text-[12px]">' + trendIcon + '</span>' : '--') +
+                    ' ' + stat.trend +
+                    '</span>' +
+                    '</div>' +
+                    '</div>'
+                );
+            }).join('');
+        }
+
+        function renderTrendsChart(trends) {
+            var container = document.getElementById('trendsChart');
+            var labelsContainer = document.getElementById('trendsLabels');
+            if (!trends || trends.length === 0) {
+                container.innerHTML = '<p class="text-text-sub text-center w-full py-8">No trend data available</p>';
+                labelsContainer.innerHTML = '';
+                return;
+            }
+            var maxTotal = Math.max.apply(null, trends.map(function (t) {
+                return (t.present || 0) + (t.absent || 0);
+            })) || 1;
+
+            container.innerHTML = trends.map(function (t) {
+                var present = Number(t.present || 0);
+                var absent = Number(t.absent || 0);
+
+                var presentPct = Math.round((present / maxTotal) * 100);
+                var absentPct = Math.round((absent / maxTotal) * 100);
+
+                return (
+                    '<div class="w-full flex flex-col-reverse h-full gap-[1px]">' +
+                    '<div class="bg-primary w-full" style="height:' + presentPct + '%"></div>' +
+                    '<div class="bg-slate-200 w-full" style="height:' + absentPct + '%"></div>' +
+                    '</div>'
+                );
+            }).join('');
+
+            var step = Math.max(1, Math.floor(trends.length / 13));
+            labelsContainer.innerHTML = trends
+                .filter(function (_, i) { return i % step === 0 || i === trends.length - 1; })
+                .map(function (t) { return '<span>' + (t.label || '') + '</span>'; })
+                .join('');
+        }
+
+        function renderDepartments(departments) {
+            var barsContainer = document.getElementById('departmentBars');
+            var colors = ['bg-primary', 'bg-secondary', 'bg-success'];
+            var textColors = ['text-primary', 'text-secondary', 'text-success'];
+
+            var list = departments || [];
+            var topDepartments = list.slice(0, 3);
+
+            var overallPct = topDepartments.length > 0
+                ? Math.round(topDepartments.reduce(function (sum, d) { return sum + (d.percentage || 0); }, 0) / topDepartments.length)
+                : 0;
+
+            document.getElementById('overallPercentage').textContent = overallPct + '%';
+
+            var donutChart = document.getElementById('donutChart');
+            var offset = 0;
+
+            var donutSegments = topDepartments.map(function (dept, i) {
+                var seg =
+                    '<path class="' + textColors[i] + '" ' +
+                    'd="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" ' +
+                    'fill="none" stroke="currentColor" ' +
+                    'stroke-dasharray="' + (dept.percentage || 0) + ', 100" ' +
+                    'stroke-dashoffset="' + (-offset) + '" ' +
+                    'stroke-width="4.5"></path>';
+                offset += (dept.percentage || 0);
+                return seg;
+            }).join('');
+
+            donutChart.innerHTML =
+                '<path class="text-slate-100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="4.5"></path>' +
+                donutSegments;
+
+            barsContainer.innerHTML = topDepartments.map(function (dept, i) {
+                return (
+                    '<div class="flex flex-col gap-1">' +
+                    '<div class="flex items-center justify-between text-[10px] mb-0.5">' +
+                    '<div class="flex items-center gap-1.5">' +
+                    '<span class="w-2 h-2 rounded-full ' + colors[i] + '"></span>' +
+                    '<span class="font-bold text-text-main">' + (dept.name || 'Unknown') + '</span>' +
+                    '</div>' +
+                    '<span class="text-text-sub">' + (dept.percentage || 0) + '%</span>' +
+                    '</div>' +
+                    '<div class="w-full bg-slate-100 rounded-full h-1.5">' +
+                    '<div class="' + colors[i] + ' h-1.5 rounded-full" style="width:' + (dept.percentage || 0) + '%"></div>' +
+                    '</div>' +
+                    '</div>'
+                );
+            }).join('');
+        }
+
+        function renderPunctuality(punctuality) {
+            var container = document.getElementById('punctualityList');
+            var rankColors = ['text-secondary', 'text-secondary', 'text-secondary', 'text-slate-400', 'text-slate-400'];
+            var avatarColors = ['bg-primary/10 text-primary', 'bg-secondary/10 text-secondary', 'bg-success/10 text-success', 'bg-slate-100 text-slate-500'];
+
+            container.innerHTML = (punctuality || []).slice(0, 5).map(function (person, i) {
+                var avatarHtml = person.img
+                    ? '<div class="h-8 w-8 rounded-full bg-cover bg-center ring-1 ring-slate-200" style="background-image:url(\'' + person.img + '\');"></div>'
+                    : '<div class="h-8 w-8 rounded-full ' + avatarColors[i % avatarColors.length] + ' flex items-center justify-center font-bold text-xs ring-1 ring-slate-200">' + getInitials(person.name) + '</div>';
+
+                return (
+                    '<tr>' +
+                    '<td class="py-2 px-2">' +
+                    '<div class="flex items-center gap-3">' +
+                    '<div class="' + (rankColors[i] || 'text-slate-400') + ' font-bold text-sm w-4">#' + (i + 1) + '</div>' +
+                    avatarHtml +
+                    '<div class="flex flex-col">' +
+                    '<span class="font-bold text-text-main">' + (person.name || 'Unknown') + '</span>' +
+                    '<span class="text-[10px] text-text-sub">' + (person.dept || '---') + '</span>' +
+                    '</div>' +
+                    '</div>' +
+                    '</td>' +
+                    '<td class="text-right py-2 px-2">' +
+                    '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-success/10 text-success font-bold text-[10px]">' +
+                    (person.score || '100%') + ' On-Time' +
+                    '</span>' +
+                    '</td>' +
+                    '</tr>'
+                );
+            }).join('') || '<tr><td colspan="2" class="py-4 text-center text-text-sub">No data available</td></tr>';
+        }
+
+        function renderAttentionRequired(attention) {
+            var highAbsenteeism = (attention && attention.high_absenteeism) || [];
+            var frequentLateIns = (attention && attention.frequent_late_ins) || [];
+
+            var absentContainer = document.getElementById('highAbsenteeismList');
+            absentContainer.innerHTML = highAbsenteeism.slice(0, 5).map(function (person) {
+                var avatarHtml = person.img
+                    ? '<div class="h-8 w-8 rounded-full bg-cover bg-center ring-1 ring-red-100" style="background-image:url(\'' + person.img + '\');"></div>'
+                    : '<div class="h-8 w-8 rounded-full flex items-center justify-center bg-secondary/10 text-secondary font-bold text-xs ring-1 ring-red-100">' + getInitials(person.name) + '</div>';
+
+                return (
+                    '<div class="flex items-center justify-between bg-white px-2 py-1 rounded border border-red-100 shadow-sm">' +
+                    '<div class="flex items-center gap-2">' +
+                    avatarHtml +
+                    '<div class="flex flex-col">' +
+                    '<span class="font-bold text-text-main text-xs">' + (person.name || 'Unknown') + '</span>' +
+                    '<span class="text-[10px] text-text-sub">' + (person.department || '---') + '</span>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="text-right">' +
+                    '<span class="block text-base font-bold text-danger">' + (person.absent_days || 0) + ' Days</span>' +
+                    '<span class="block text-[9px] text-red-600/70 font-medium">ABSENT</span>' +
+                    '</div>' +
+                    '</div>'
+                );
+            }).join('') || '<p class="text-text-sub text-xs">No high absenteeism detected</p>';
+
+            var lateContainer = document.getElementById('frequentLateInsList');
+            lateContainer.innerHTML = frequentLateIns.slice(0, 5).map(function (person) {
+                var avatarHtml = person.img
+                    ? '<div class="h-8 w-8 rounded-full bg-cover bg-center ring-1 ring-amber-100" style="background-image:url(\'' + person.img + '\');"></div>'
+                    : '<div class="h-8 w-8 rounded-full flex items-center justify-center bg-success/10 text-success font-bold text-xs ring-1 ring-amber-100">' + getInitials(person.name) + '</div>';
+
+                return (
+                    '<div class="flex items-center justify-between bg-white px-2 py-1 rounded border border-amber-100 shadow-sm">' +
+                    '<div class="flex items-center gap-2">' +
+                    avatarHtml +
+                    '<div class="flex flex-col">' +
+                    '<span class="font-bold text-text-main text-xs">' + (person.name || 'Unknown') + '</span>' +
+                    '<span class="text-[10px] text-text-sub">' + (person.department || '---') + '</span>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="text-right">' +
+                    '<span class="block text-base font-bold text-secondary">' + (person.late_days || 0) + ' Times</span>' +
+                    '<span class="block text-[9px] text-amber-600/70 font-medium">LATE IN</span>' +
+                    '</div>' +
+                    '</div>'
+                );
+            }).join('') || '<p class="text-text-sub text-xs">No frequent late-ins detected</p>';
+        }
+
+        function renderEmployeeTable(employees) {
+            var container = document.getElementById('employeeTableBody');
+            var maxRowsPage3 = 7;
+            var maxRowsPerPage = 7;
+
+            var list = employees || [];
+            var page3Employees = list.slice(0, maxRowsPage3);
+
+            container.innerHTML = page3Employees.map(function (emp) {
+                var rate = Math.round(emp.rate || 0);
+                var rateColor = getPerformanceColor(rate);
+                var avgIn = emp.avg_checkin || '---';
+                var avgOut = emp.avg_checkout || '---';
+                var avgHrs = emp.avg_working_hrs || '---';
+                var totalHrs = emp.total_hours || '---';
+                var expectedHrs = emp.required_hours || '---';
+
+                var avatarHtml = emp.img
+                    ? '<img src="' + emp.img + '" onerror="this.onerror=null;this.src=\'https://ui-avatars.com/api/?name=' + encodeURIComponent(emp.name || 'Employee') + '\'" class="h-8 w-8 rounded-full ring-1 ring-slate-200 object-cover object-center" />'
+                    : '<div class="h-8 w-8 rounded-full flex items-center justify-center bg-primary/10 text-primary font-bold text-xs ring-1 ring-slate-200">' + getInitials(emp.name) + '</div>';
+
+                return (
+                    '<tr class="hover:bg-slate-50/50">' +
+                    '<td class="px-4 py-2"><div class="flex items-center gap-3">' +
+                    avatarHtml +
+                    '<div class="flex flex-col">' +
+                    '<span class="font-bold text-text-main">' + (emp.name || 'Unknown') + '</span>' +
+                    '<span class="text-[10px] text-text-sub">' + (emp.department || '---') + '</span>' +
+                    '</div></div></td>' +
+                    '<td class="px-2 py-2 text-center font-medium">' + (emp.days_present || 0) + '</td>' +
+                    '<td class="px-2 py-2 text-center text-text-sub">' + (emp.days_absent || 0) + '</td>' +
+                    '<td class="px-2 py-2 text-center text-text-sub">' + (emp.days_leave || 0) + '</td>' +
+                    '<td class="px-2 py-2 text-center text-text-sub">' + (emp.manual_logs || 0) + '</td>' +
+                    '<td class="px-2 py-2 text-center">' + avgIn + '</td>' +
+                    '<td class="px-2 py-2 text-center">' + avgOut + '</td>' +
+                    '<td class="px-2 py-2 text-center text-text-sub">' + (emp.late_in_hours || 0) + '</td>' +
+                    '<td class="px-2 py-2 text-center text-text-sub">' + (emp.early_out_hours || 0) + '</td>' +
+                    '<td class="px-2 py-2 text-center">' + avgHrs + '</td>' +
+                    '<td class="px-4 py-2 text-right font-medium">' + totalHrs + '<span class="text-text-sub font-normal">/' + expectedHrs + '</span></td>' +
+                    '<td class="px-4 py-2 text-right font-bold ' + rateColor + '">' + rate + '%</td>' +
+                    '</tr>'
+                );
+            }).join('') || '<tr><td colspan="12" class="py-4 text-center text-text-sub">No employee data available</td></tr>';
+
+            var remaining = list.slice(maxRowsPage3);
+            if (remaining.length > 0) createAdditionalPages(remaining, maxRowsPerPage);
+
+            // ✅ update totals (3 base pages + extra pages)
+            var totalPages = 3 + Math.ceil(remaining.length / maxRowsPerPage);
+            document.getElementById('totalPages1').textContent = totalPages;
+            document.getElementById('totalPages2').textContent = totalPages;
+            document.getElementById('totalPages3').textContent = totalPages;
+        }
+
+        function createAdditionalPages(employees, maxPerPage) {
+            var container = document.getElementById('additionalPagesContainer');
+            var params = getUrlParams();
+            var periodLabel = formatPeriodLabel(params.from_date, params.to_date);
+            var generatedDate = formatDate(new Date().toISOString());
+
+            var totalPages = 3 + Math.ceil(employees.length / maxPerPage);
+
+            var pageHtml = '';
+            for (var i = 0; i < employees.length; i += maxPerPage) {
+                var pageEmployees = employees.slice(i, i + maxPerPage);
+                if (pageEmployees.length === 0) continue; // Skip empty pages
+                var pageNum = 4 + Math.floor(i / maxPerPage);
+
+                var rowsHtml = pageEmployees.map(function (emp) {
+                    var rate = Math.round(emp.rate || 0);
+                    var rateColor = getPerformanceColor(rate);
+                    var avgIn = emp.avg_checkin || '---';
+                    var avgOut = emp.avg_checkout || '---';
+                    var avgHrs = emp.avg_working_hrs || '---';
+                    var totalHrs = emp.total_hours || '---';
+                    var expectedHrs = emp.required_hours || '---';
+
+                    var avatarHtml = emp.img
+                        ? '<img src="' + emp.img + '" onerror="this.onerror=null;this.src=\'https://ui-avatars.com/api/?name=' + encodeURIComponent(emp.name || 'Employee') + '\'" class="h-8 w-8 rounded-full ring-1 ring-slate-200 object-cover object-center" />'
+                        : '<div class="h-8 w-8 rounded-full flex items-center justify-center bg-primary/10 text-primary font-bold text-xs ring-1 ring-slate-200">' + getInitials(emp.name) + '</div>';
+
+                    return (
+                        '<tr class="hover:bg-slate-50/50">' +
+                        '<td class="px-4 py-2"><div class="flex items-center gap-3">' +
+                        avatarHtml +
+                        '<div class="flex flex-col">' +
+                        '<span class="font-bold text-text-main">' + (emp.name || 'Unknown') + '</span>' +
+                        '<span class="text-[10px] text-text-sub">' + (emp.department || '---') + '</span>' +
+                        '</div></div></td>' +
+                        '<td class="px-2 py-2 text-center font-medium">' + (emp.days_present || 0) + '</td>' +
+                        '<td class="px-2 py-2 text-center text-text-sub">' + (emp.days_absent || 0) + '</td>' +
+                        '<td class="px-2 py-2 text-center text-text-sub">' + (emp.days_leave || 0) + '</td>' +
+                        '<td class="px-2 py-2 text-center text-text-sub">' + (emp.manual_logs || 0) + '</td>' +
+                        '<td class="px-2 py-2 text-center">' + avgIn + '</td>' +
+                        '<td class="px-2 py-2 text-center">' + avgOut + '</td>' +
+                        '<td class="px-2 py-2 text-center text-text-sub">' + (emp.late_in_count || 0) + '</td>' +
+                        '<td class="px-2 py-2 text-center text-text-sub">' + (emp.early_out_count || 0) + '</td>' +
+                        '<td class="px-2 py-2 text-center">' + avgHrs + '</td>' +
+                        '<td class="px-4 py-2 text-right font-medium">' + totalHrs + '<span class="text-text-sub font-normal">/' + expectedHrs + '</span></td>' +
+                        '<td class="px-4 py-2 text-right font-bold ' + rateColor + '">' + rate + '%</td>' +
+                        '</tr>'
+                    );
+                }).join('');
+
+                pageHtml +=
+                    '<div class="page-container">' +
+                    '<header class="flex items-end justify-between border-b-2 border-primary pb-3 mb-1 shrink-0">' +
+                    '<div class="flex flex-col gap-0.5">' +
+                    '<div class="flex items-center gap-2 mb-1">' +
+                    '<div class="bg-primary text-white p-1.5 rounded-sm"><span class="material-symbols-outlined text-xl">analytics</span></div>' +
+                    '<h1 class="text-lg font-bold text-primary uppercase tracking-wide">WorkDay Analytics</h1>' +
+                    '</div>' +
+                    '<h2 class="text-2xl font-bold text-text-main">Monthly Attendance Summary</h2>' +
+                    '<p class="text-text-sub text-xs">Generated on ' + generatedDate + '</p>' +
+                    '</div>' +
+                    '<div class="text-right">' +
+                    '<div class="">' +
+                    '<span class="block text-[10px] font-semibold text-text-sub uppercase tracking-wider">Reporting Period</span>' +
+                    '<span class="block text-base font-bold text-primary">' + periodLabel + '</span>' +
+                    '</div>' +
+                    '</div>' +
+                    '</header>' +
+
+                    '<section class="flex-1 min-h-0 border border-slate-200 rounded p-0 overflow-hidden flex flex-col">' +
+                    '<div class="px-4 py-3 border-b border-slate-200 bg-slate-50 flex items-center justify-between">' +
+                    '<h3 class="text-xs font-bold uppercase tracking-wide text-text-main">Detailed Employee Statistics (Continued)</h3>' +
+                    '<span class="text-[10px] text-text-sub font-medium">Page ' + pageNum + ' of ' + totalPages + '</span>' +
+                    '</div>' +
+                    '<div class="flex-1 overflow-auto">' +
+                    '<table class="w-full text-left text-xs">' +
+                    '<thead class="bg-slate-100 text-primary font-bold border-b border-slate-200 sticky top-0 z-10">' +
+                    '<tr>' +
+                    '<th class="px-4 py-2.5 w-[20%] bg-slate-100">Employee</th>' +
+                    '<th class="px-2 py-2.5 text-center bg-slate-100">P</th>' +
+                    '<th class="px-2 py-2.5 text-center bg-slate-100">A</th>' +
+                    '<th class="px-2 py-2.5 text-center bg-slate-100">L</th>' +
+                    '<th class="px-2 py-2.5 text-center bg-slate-100">ML</th>' +
+                    '<th class="px-2 py-2.5 text-center bg-slate-100">Avg CI</th>' +
+                    '<th class="px-2 py-2.5 text-center bg-slate-100">Avg CO</th>' +
+                    '<th class="px-2 py-2.5 text-center bg-slate-100">LI</th>' +
+                    '<th class="px-2 py-2.5 text-center bg-slate-100">EO</th>' +
+                    '<th class="px-2 py-2.5 text-center bg-slate-100">Avg WH</th>' +
+                    '<th class="px-4 py-2.5 text-right bg-slate-100">WH</th>' +
+                    '<th class="px-4 py-2.5 text-right bg-slate-100">Perf</th>' +
+                    '</tr>' +
+                    '</thead>' +
+                    '<tbody class="divide-y divide-slate-100 text-text-main">' + rowsHtml + '</tbody>' +
+                    '</table>' +
+                    '</div>' +
+                    '</section>' +
+
+                    '<footer class="mt-auto pt-2 border-t border-slate-200 flex justify-between items-center text-[10px] text-text-sub shrink-0">' +
+                    '<p>Confidential Document • Internal Use Only</p>' +
+                    '<p>Page ' + pageNum + ' of ' + totalPages + '</p>' +
+                    '</footer>' +
+                    '</div>';
+            }
+
+            container.innerHTML = pageHtml;
+
+            // ✅ update totals on base pages too
+            document.getElementById('totalPages1').textContent = totalPages;
+            document.getElementById('totalPages2').textContent = totalPages;
+            document.getElementById('totalPages3').textContent = totalPages;
+        }
+
+        /* ✅ FIXED: no pagebreak.before selector (causes blank pages) */
+        async function downloadPdf() {
+            const buttons = document.querySelector(".no-print");
+            const overlay = document.getElementById("loadingOverlay");
+
+            // Show loading overlay
+            if (overlay) overlay.classList.remove("hidden");
+            // hide UI controls
+            if (buttons) buttons.style.display = "none";
+
+            const pages = Array.from(document.querySelectorAll(".page-container"));
+
+            // ✅ Temporarily remove overflow issues during capture (very important)
+            const restore = pages.map((p) => {
+                return {
+                    el: p,
+                    overflow: p.style.overflow,
+                    height: p.style.height,
+                    boxShadow: p.style.boxShadow,
+                };
+            });
+
+            pages.forEach((p) => {
+                p.style.overflow = "hidden";     // avoid blank canvas splits
+                p.style.boxShadow = "none";      // optional
+            });
+
+            // ✅ Use jsPDF directly (no html2pdf auto-pagebreak)
+            const pdf = new window.jspdf.jsPDF({
+                orientation: "landscape",
+                unit: "mm",
+                format: "a4",
+            });
+
+            // A4 landscape in mm
+            const pageW = 297;
+            const pageH = 210;
+
+            for (let i = 0; i < pages.length; i++) {
+                const el = pages[i];
+
+                // ✅ render each page separately
+                const canvas = await html2canvas(el, {
+                    scale: 3,
+                    useCORS: true,
+                    backgroundColor: "#ffffff",
+                    logging: false,
+                    windowWidth: el.scrollWidth,
+                    windowHeight: el.scrollHeight,
+                });
+
+                const imgData = canvas.toDataURL("image/jpeg", 1.0);
+
+                if (i > 0) pdf.addPage("a4", "landscape");
+
+                // ✅ Fit image exactly to A4 landscape
+                pdf.addImage(imgData, "JPEG", 0, 0, pageW, pageH, undefined, "FAST");
+            }
+
+            pdf.save("attendance_report.pdf");
+
+            // restore styles
+            restore.forEach((r) => {
+                r.el.style.overflow = r.overflow;
+                r.el.style.height = r.height;
+                r.el.style.boxShadow = r.boxShadow;
+            });
+
+            // restore UI controls
+            if (buttons) buttons.style.display = "flex";
+            // Hide loading overlay after generation
+            if (overlay) overlay.classList.add("hidden");
+        }
+
+
+        async function init() {
+            var params = getUrlParams();
+            var loadingOverlay = document.getElementById('loadingOverlay');
+
+            var generatedDate = formatDate(new Date().toISOString());
+            var periodLabel = formatPeriodLabel(params.from_date, params.to_date);
+
+            document.getElementById('generatedDate').textContent = 'Generated on ' + generatedDate;
+            document.getElementById('generatedDate2').textContent = 'Generated on ' + generatedDate;
+            document.getElementById('generatedDate3').textContent = 'Generated on ' + generatedDate;
+
+            var reportingPeriodEl = document.getElementById('reportingPeriod');
+            if (reportingPeriodEl) reportingPeriodEl.textContent = periodLabel;
+            document.getElementById('reportingPeriod2').textContent = periodLabel;
+            document.getElementById('reportingPeriod3').textContent = periodLabel;
+
+            if (!params.company_id) {
+                loadingOverlay.innerHTML =
+                    '<div class="text-center">' +
+                    '<p class="text-red-400 text-xl">Error: company_id is required</p>' +
+                    '<p class="text-slate-400 mt-2">Pass company_id as URL parameter</p>' +
+                    '</div>';
+                return;
+            }
+
+            var apiUrl = buildApiUrl(params);
+            var dayTrendUrl = params.api_base + '/company_stats_day_trends?company_id=' + encodeURIComponent(params.company_id);
+            if (params.from_date) dayTrendUrl += '&from_date=' + encodeURIComponent(params.from_date);
+            if (params.to_date) dayTrendUrl += '&to_date=' + encodeURIComponent(params.to_date);
+            if (params.branch_ids) dayTrendUrl += '&branch_ids=' + encodeURIComponent(params.branch_ids);
+            if (params.department_ids) dayTrendUrl += '&department_ids=' + encodeURIComponent(params.department_ids);
+
+            try {
+                // Fetch both APIs in parallel
+                const [summaryRes, dayTrendRes] = await Promise.all([
+                    fetch(apiUrl, { method: 'GET', headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' } }),
+                    fetch(dayTrendUrl, { method: 'GET', headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' } })
+                ]);
+
+                if (!summaryRes.ok) throw new Error('Summary API error! status: ' + summaryRes.status);
+                if (!dayTrendRes.ok) throw new Error('Day Trend API error! status: ' + dayTrendRes.status);
+
+                const summaryData = await summaryRes.json();
+                const dayTrendData = await dayTrendRes.json();
+
+                renderStats(summaryData.stats || []);
+                renderTrendsChart((dayTrendData && dayTrendData.data) || []);
+                renderDepartments(summaryData.department_breakdown || []);
+                renderPunctuality(summaryData.punctuality_top || []);
+                renderAttentionRequired(summaryData.attention_required || {});
+                renderEmployeeTable(summaryData.daily_attendance || []);
+
+                loadingOverlay.classList.add('hidden');
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                loadingOverlay.innerHTML =
+                    '<div class="text-center">' +
+                    '<p class="text-red-400 text-xl mb-2">Error loading report data</p>' +
+                    '<p class="text-slate-400">' + error.message + '</p>' +
+                    '<p class="text-slate-500 text-sm mt-4">Check console for details</p>' +
+                    '</div>';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+        function takeScreenshot() {
+            const page = document.body;
+            // Hide overlay and buttons for screenshot
+            const overlay = document.getElementById('loadingOverlay');
+            const controls = document.querySelector('.no-print');
+            if (overlay) overlay.classList.add('hidden');
+            if (controls) controls.style.display = 'none';
+            html2canvas(page, { useCORS: true, backgroundColor: null, scale: 2 }).then(canvas => {
+                // Restore overlay and controls
+                if (overlay) overlay.classList.remove('hidden');
+                if (controls) controls.style.display = '';
+                const link = document.createElement('a');
+                link.download = 'monthly-summary-screenshot.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            });
+        }
+    </script>
+</body>
+
+</html>

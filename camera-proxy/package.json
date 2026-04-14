@@ -1,0 +1,13 @@
+{
+  "name": "camera-proxy",
+  "version": "1.0.0",
+  "description": "RTSP to WebSocket proxy for live camera streaming",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "ws": "^8.16.0",
+    "axios": "^1.7.0",
+    "dotenv": "^16.4.5"
+  }
+}

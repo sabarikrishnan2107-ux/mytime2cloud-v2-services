@@ -1,0 +1,613 @@
+{
+  "info": {
+    "name": "FRT MQTT Full API (Laravel \u2192 Node \u2192 Device)",
+    "_postman_id": "a0030cfd-69c9-4e41-8c40-fe91271a8478",
+    "description": "Full REST API for Face Recognition Terminal via Laravel + Node MQTT gateway.\nAssumes baseUrl = http://127.0.0.1:8000/api and deviceId is your terminal ID/SN.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Door Control",
+      "item": [
+        {
+          "name": "Open Door",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/face-device/{{deviceId}}/open-door",
+              "host": ["{{baseUrl}}"],
+              "path": ["face-device", "{{deviceId}}", "open-door"]
+            },
+            "description": "Trigger remote door open for the configured IOStayTime (MQTT OpenDoor)."
+          }
+        },
+        {
+          "name": "Close Door (info)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/face-device/{{deviceId}}/close-door",
+              "host": ["{{baseUrl}}"],
+              "path": ["face-device", "{{deviceId}}", "close-door"]
+            },
+            "description": "NOTE: Protocol only has OpenDoor; door closes automatically after IOStayTime. Implement this endpoint in Node only if you add a custom close behaviour."
+          }
+        },
+        {
+          "name": "Get Door Config",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/face-device/{{deviceId}}/door-config",
+              "host": ["{{baseUrl}}"],
+              "path": ["face-device", "{{deviceId}}", "door-config"]
+            },
+            "description": "Reads door opening conditions and output control parameters (MQTT GetDoorconfig)."
+          }
+        },
+        {
+          "name": "Set Door Config",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"VerifyMode\": 1,\n  \"IOStayTime\": 3000\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/face-device/{{deviceId}}/door-config",
+              "host": ["{{baseUrl}}"],
+              "path": ["face-device", "{{deviceId}}", "door-config"]
+            },
+            "description": "Updates door opening conditions (MQTT UpDoorconfig). Example only; adjust to your parameters."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Time / Timezone",
+      "item": [
+        {
+          "name": "Get Device Time",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/face-device/{{deviceId}}/time",
+              "host": ["{{baseUrl}}"],
+              "path": ["face-device", "{{deviceId}}", "time"]
+            },
+            "description": "GetSysTime: returns current device time in YYYY-MM-DDThh:mm:ss."
+          }
+        },
+        {
+          "name": "Set Device Time (Change Timezone)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sysTime\": \"2025-11-22T18:30:00\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/face-device/{{deviceId}}/time",
+              "host": ["{{baseUrl}}"],
+              "path": ["face-device", "{{deviceId}}", "time"]
+            },
+            "description": "SetSysTime: set device local time in your desired timezone. Your backend can convert from server time to local time zone."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Personnel",
+      "item": [
+        {
+          "name": "Add / Update Person",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customId\": \"{{customId}}\",\n  \"name\": \"John Doe\",\n  \"tempCardType\": 1,\n  \"personType\": 0,\n  \"pic\": \"BASE64_FACE_IMAGE\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/face-device/{{deviceId}}/person",
+              "host": ["{{baseUrl}}"],
+              "path": ["face-device", "{{deviceId}}", "person"]
+            },
+            "description": "EditPerson: add or update one person with face image (base64)."
+          }
+        },
+        {
+          "name": "Delete Person",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/face-device/{{deviceId}}/person/{{customId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["face-device", "{{deviceId}}", "person", "{{customId}}"]
+            },
+            "description": "DelPerson: delete one person by customId."
+          }
+        },
+        {
+          "name": "Batch Add / Update Persons",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"persons\": [\n    {\n      \"customId\": \"E0001\",\n      \"name\": \"Alice\",\n      \"personType\": 0,\n      \"pic\": \"BASE64...\"\n    },\n    {\n      \"customId\": \"E0002\",\n      \"name\": \"Bob\",\n      \"personType\": 0,\n      \"pic\": \"BASE64...\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/face-device/{{deviceId}}/persons/batch",
+              "host": ["{{baseUrl}}"],
+              "path": ["face-device", "{{deviceId}}", "persons", "batch"]
+            },
+            "description": "EditPersonsNew: batch add / modify persons."
+          }
+        },
+        {
+          "name": "Batch Delete Persons",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customIds\": [\"E0001\", \"E0002\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/face-device/{{deviceId}}/persons/batch-delete",
+              "host": ["{{baseUrl}}"],
+              "path": ["face-device", "{{deviceId}}", "persons", "batch-delete"]
+            },
+            "description": "DeletePersons: batch delete persons by customId."
+          }
+        },
+        {
+          "name": "Delete ALL Persons",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/face-device/{{deviceId}}/persons/delete-all",
+              "host": ["{{baseUrl}}"],
+              "path": ["face-device", "{{deviceId}}", "persons", "delete-all"]
+            },
+            "description": "DeleteAllPerson: delete all persons on device (USE CAREFULLY)."
+          }
+        },
+        {
+          "name": "Get Person",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/face-device/{{deviceId}}/person/{{customId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["face-device", "{{deviceId}}", "person", "{{customId}}"]
+            },
+            "description": "SearchPerson: query one person; backend may support query param ?picture=1 to include image."
+          }
+        },
+        {
+          "name": "Search Person List",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"BeginTime\": \"2025-11-01 00:00:00\",\n  \"EndTime\": \"2025-11-30 23:59:59\",\n  \"personType\": 0,\n  \"BeginNO\": 0,\n  \"RequestCount\": 50\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/face-device/{{deviceId}}/persons/search",
+              "host": ["{{baseUrl}}"],
+              "path": ["face-device", "{{deviceId}}", "persons", "search"]
+            },
+            "description": "SearchPersonList: search people by type / time / name."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Snapshot & QR",
+      "item": [
+        {
+          "name": "Manual Snapshot",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"imgType\": 2,\n  \"imgQuality\": 55\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/face-device/{{deviceId}}/snapshot",
+              "host": ["{{baseUrl}}"],
+              "path": ["face-device", "{{deviceId}}", "snapshot"]
+            },
+            "description": "GetSceneSnap: manual capture of scene image from device camera."
+          }
+        },
+        {
+          "name": "Show QR Code on Screen",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ImageType\": 1,\n  \"AbsX\": 0,\n  \"AbsY\": 0,\n  \"ImageW\": 300,\n  \"ImageH\": 300,\n  \"QRCodeData\": \"TOKEN-123456\",\n  \"ShowStatus\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/face-device/{{deviceId}}/qrcode",
+              "host": ["{{baseUrl}}"],
+              "path": ["face-device", "{{deviceId}}", "qrcode"]
+            },
+            "description": "ShowQRCode: display a QR code on device screen (for token / health code / etc.)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Advertisements",
+      "item": [
+        {
+          "name": "Upload / Set AD Slot",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"adslot\": 0,\n  \"path\": \"https://your-domain.com/ad-01.jpg\",\n  \"polltime\": 10,\n  \"adid\": \"\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/face-device/{{deviceId}}/ad",
+              "host": ["{{baseUrl}}"],
+              "path": ["face-device", "{{deviceId}}", "ad"]
+            },
+            "description": "EditAD: configure an advertisement image slot."
+          }
+        },
+        {
+          "name": "Delete AD Slot",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"adslot\": 0,\n  \"adid\": \"\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/face-device/{{deviceId}}/ad",
+              "host": ["{{baseUrl}}"],
+              "path": ["face-device", "{{deviceId}}", "ad"]
+            },
+            "description": "DelAD: delete an advertisement slot."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Access Strategy",
+      "item": [
+        {
+          "name": "Add / Update Access Strategy",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"strategyID\": 1,\n  \"strategyName\": \"Office Hours\",\n  \"accessNumLimit\": 0,\n  \"allowCnt\": 0,\n  \"startDate\": \"2025-01-01\",\n  \"endDate\": \"2025-12-31\",\n  \"monday\": [1, 2],\n  \"tuesday\": [1, 2],\n  \"wednesday\": [1, 2],\n  \"thursday\": [1, 2],\n  \"friday\": [1, 2],\n  \"saturday\": [],\n  \"sunday\": [],\n  \"holidayInfo\": []\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/face-device/{{deviceId}}/strategy",
+              "host": ["{{baseUrl}}"],
+              "path": ["face-device", "{{deviceId}}", "strategy"]
+            },
+            "description": "AddAccessStrategy: configure allowed time periods for access."
+          }
+        },
+        {
+          "name": "Delete Access Strategies",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"strategyIds\": [1, 2]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/face-device/{{deviceId}}/strategy",
+              "host": ["{{baseUrl}}"],
+              "path": ["face-device", "{{deviceId}}", "strategy"]
+            },
+            "description": "DelAccessStrategy: delete strategies by ID."
+          }
+        },
+        {
+          "name": "Bind Strategies to Persons",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"personsInfo\": [\n    { \"customId\": \"E0001\", \"strategyID\": [1] },\n    { \"customId\": \"E0002\", \"strategyID\": [1, 2] }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/face-device/{{deviceId}}/strategy/bind",
+              "host": ["{{baseUrl}}"],
+              "path": ["face-device", "{{deviceId}}", "strategy", "bind"]
+            },
+            "description": "PersonsBindStrategyID: attach strategies to persons."
+          }
+        },
+        {
+          "name": "Unbind Strategies from Persons",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"personsInfo\": [\n    { \"customId\": \"E0001\", \"strategyID\": [1] }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/face-device/{{deviceId}}/strategy/unbind",
+              "host": ["{{baseUrl}}"],
+              "path": ["face-device", "{{deviceId}}", "strategy", "unbind"]
+            },
+            "description": "PersonsUnbindStrategyID: remove strategies from persons."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Temperature Config (TPT)",
+      "item": [
+        {
+          "name": "Get Temperature Config",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/face-device/{{deviceId}}/temperature-config",
+              "host": ["{{baseUrl}}"],
+              "path": ["face-device", "{{deviceId}}", "temperature-config"]
+            },
+            "description": "GetTPTconfig: read temperature measurement parameters."
+          }
+        },
+        {
+          "name": "Set Temperature Config",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"TemperatureMode\": 0,\n  \"ShowAbnormalTemp\": 1,\n  \"TemperatureCheck\": 0.0,\n  \"HeightTemp\": 37.3,\n  \"LowTemp\": 34.0\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/face-device/{{deviceId}}/temperature-config",
+              "host": ["{{baseUrl}}"],
+              "path": ["face-device", "{{deviceId}}", "temperature-config"]
+            },
+            "description": "UpTPTconfig: set temperature measurement parameters."
+          }
+        }
+      ]
+    },
+    {
+      "name": "GPS",
+      "item": [
+        {
+          "name": "Get GPS Info",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/face-device/{{deviceId}}/gps",
+              "host": ["{{baseUrl}}"],
+              "path": ["face-device", "{{deviceId}}", "gps"]
+            },
+            "description": "GetGpsInfo: read GPS state and last known coordinates."
+          }
+        },
+        {
+          "name": "Set GPS Config",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"GpsType\": 1,\n  \"Longitude\": 55.2708,\n  \"Latitude\": 25.2048,\n  \"UTCOffset\": \"+04:00\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/face-device/{{deviceId}}/gps",
+              "host": ["{{baseUrl}}"],
+              "path": ["face-device", "{{deviceId}}", "gps"]
+            },
+            "description": "UpGpsConfig: configure GPS; UTCOffset field can be used logically as timezone offset if supported."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Sound & UI",
+      "item": [
+        {
+          "name": "Get Sound Config",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/face-device/{{deviceId}}/sound-config",
+              "host": ["{{baseUrl}}"],
+              "path": ["face-device", "{{deviceId}}", "sound-config"]
+            },
+            "description": "GetSoundconfig: read prompt sound and interface display parameters."
+          }
+        },
+        {
+          "name": "Set Sound Config",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Volume\": 80,\n  \"WelcomeVoice\": 1,\n  \"LcdBLDisable\": 1,\n  \"LcdBLDisableAfterSec\": 60\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/face-device/{{deviceId}}/sound-config",
+              "host": ["{{baseUrl}}"],
+              "path": ["face-device", "{{deviceId}}", "sound-config"]
+            },
+            "description": "UpSoundconfig: set prompt sounds and some screen behaviour."
+          }
+        }
+      ]
+    },
+    {
+      "name": "System Control",
+      "item": [
+        {
+          "name": "Reboot Device",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/face-device/{{deviceId}}/reboot",
+              "host": ["{{baseUrl}}"],
+              "path": ["face-device", "{{deviceId}}", "reboot"]
+            },
+            "description": "Reboot: remotely restart device (map to MQTT reboot operator in Node)."
+          }
+        },
+        {
+          "name": "Factory Reset",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"keepNetwork\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/face-device/{{deviceId}}/factory-reset",
+              "host": ["{{baseUrl}}"],
+              "path": ["face-device", "{{deviceId}}", "factory-reset"]
+            },
+            "description": "RestoreFactory: reset device parameters; keepNetwork=1 to keep IP config (if you implement that behaviour)."
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:8000/api"
+    },
+    {
+      "key": "deviceId",
+      "value": "2864575"
+    },
+    {
+      "key": "customId",
+      "value": "E0001"
+    }
+  ]
+}

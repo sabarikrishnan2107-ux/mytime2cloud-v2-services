@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>MQTT Gateway Log Viewer</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { background: #0d1117; color: #d1d5db; }
+    .log-box { font-family: monospace; white-space: pre-wrap; }
+  </style>
+</head>
+<body class="p-6">
+  <h1 class="text-3xl font-bold mb-4">MQTT Gateway Log Viewer</h1>
+
+  <div class="flex gap-4 mb-4">
+    <select id="logType" class="p-2 rounded bg-gray-800 border border-gray-700">
+      <option value="activity">Activity Log</option>
+      <option value="error">Error Log</option>
+      <option value="events">Events Log</option>
+    </select>
+
+    <button onclick="loadLog()" class="px-4 py-2 bg-blue-600 rounded hover:bg-blue-700">
+      Refresh
+    </button>
+
+    <button onclick="clearBox()" class="px-4 py-2 bg-gray-600 rounded hover:bg-gray-700">
+      Clear
+    </button>
+  </div>
+
+  <div id="logOutput" class="log-box bg-black p-4 rounded h-[80vh] overflow-auto"></div>
+
+  <script>
+    async function loadLog() {
+      const type = document.getElementById("logType").value;
+      const output = document.getElementById("logOutput");
+
+      output.innerText = "Loading...";
+
+      let endpoint = "";
+      if (type === "activity") endpoint = "/api/logs/activity/today";
+      if (type === "error") endpoint = "/api/logs/error/today";
+      if (type === "events") endpoint = "/api/logs/events/today";
+
+      try {
+        const res = await fetch(endpoint);
+        const json = await res.json();
+        output.innerText = json.content || "(empty log)";
+      } catch (e) {
+        output.innerText = "Error loading logs: " + e.message;
+      }
+    }
+
+    function clearBox() {
+      document.getElementById("logOutput").innerText = "";
+    }
+
+    loadLog();
+  </script>
+</body>
+</html>

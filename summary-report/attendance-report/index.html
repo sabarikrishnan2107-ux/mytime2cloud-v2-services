@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+  <title>Monthly Attendance Report - Multiple IN</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;family=Outfit:wght@500;600;700&amp;family=Plus+Jakarta+Sans:wght@500;600;700&amp;display=swap"
+    rel="stylesheet" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+    rel="stylesheet" />
+  <script type="module" crossorigin src="/attendance-report/assets/index-AuH5YblT.js"></script>
+  <link rel="stylesheet" crossorigin href="/attendance-report/assets/index-CW4BccYh.css">
+  <style>
+    /* Use system font for status column */
+    td.px-4.py-3.text-center.font-mono,
+    td.p-1.text-center.font-mono {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+      font-weight: 300 !important;
+    }
+
+    /* Remove card/badge styling from status column - show plain text only */
+    td.px-4.py-3.text-center.font-mono>span,
+    td.p-1.text-center.font-mono>span {
+      position: static !important;
+      display: block !important;
+      height: auto !important;
+      width: auto !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      background: none !important;
+      border: none !important;
+      box-shadow: none !important;
+      font-weight: 500 !important;
+    }
+
+    td.px-4.py-3.text-center.font-mono>span>span:not(.manual-tag),
+    td.p-1.text-center.font-mono>span>span:not(.manual-tag) {
+      position: static !important;
+      left: auto !important;
+      top: auto !important;
+    }
+
+    .manual-tag {
+      display: block !important;
+      color: #ef4444 !important;
+      font-size: 9px !important;
+      font-weight: 400 !important;
+      margin-top: 2px !important;
+      background: none !important;
+      border: none !important;
+      padding: 0 !important;
+      height: auto !important;
+      width: auto !important;
+      position: static !important;
+    }
+
+    /* Reduce title size */
+    h1, .text-2xl, [class*="text-2xl"] {
+      font-size: 18px !important;
+    }
+
+    /* Time values and branch/device name - dark black */
+    table td .font-mono,
+    table td [class*="font-mono"],
+    table td [class*="text-indigo"],
+    table td [class*="text-slate"],
+    table td [class*="text-gray"] {
+      color: #000000 !important;
+    }
+
+    /* Hide colored underlines below summary count numbers */
+    .h-1.rounded-full,
+    [class~="h-1"][class~="rounded-full"] {
+      display: none !important;
+    }
+
+    /* Reduce all table cell padding */
+    table td,
+    table th {
+      padding: 6px 8px !important;
+    }
+
+    /* Prevent header text wrapping and fix alignment */
+    table th {
+      white-space: nowrap !important;
+      font-size: 11px !important;
+      text-align: center !important;
+      color: #000000 !important;
+    }
+
+    /* Center align all data cells */
+    table td {
+      text-align: center !important;
+    }
+
+    /* Left align date and shift columns */
+    table td:first-child,
+    table th:first-child,
+    table td:nth-child(2),
+    table th:nth-child(2) {
+      text-align: left !important;
+    }
+
+    /* Remove background color from summary cards */
+    div[class*="bg-rose-50"],
+    div[class*="bg-indigo-50"],
+    div[class*="bg-blue-50"],
+    div[class*="bg-emerald-50"],
+    div[class*="bg-amber-50"] {
+      background: white !important;
+    }
+
+    /* Ensure header aligns with data */
+    table th div[class*="absolute"] {
+      position: static !important;
+    }
+
+    /* Date column - reduce font weight */
+    td.px-4.py-3 .font-bold,
+    td.p-1 .font-bold {
+      font-weight: 400 !important;
+    }
+
+    /* Total hours - increase font weight */
+    td.px-4.py-3.text-center.font-mono:nth-last-child(2),
+    td.p-1.text-center.font-mono.text-slate-700 {
+      font-weight: 600 !important;
+    }
+
+    /* Present = green */
+    td.px-4.py-3.text-center.font-mono .bg-emerald-50,
+    td.p-1.text-center.font-mono .bg-emerald-50 {
+      color: #047857 !important;
+    }
+
+    /* Absent = red */
+    td.px-4.py-3.text-center.font-mono .bg-rose-50,
+    td.p-1.text-center.font-mono .bg-rose-50 {
+      color: #be123c !important;
+    }
+
+    /* Holiday, Leave, Missing = gray (bg-gray-100) */
+    td.px-4.py-3.text-center.font-mono .bg-gray-100,
+    td.p-1.text-center.font-mono .bg-gray-100 {
+      color: #374151 !important;
+    }
+
+    /* Reduce row height to fit more content per page */
+    table tr {
+      line-height: 1.2 !important;
+    }
+
+    /* Reduce spacing between sections */
+    .gap-6, [class*="gap-6"] {
+      gap: 12px !important;
+    }
+    .gap-4, [class*="gap-4"] {
+      gap: 8px !important;
+    }
+    .p-3, [class*="p-3"] {
+      padding: 8px !important;
+    }
+    .mb-4, [class*="mb-4"] {
+      margin-bottom: 8px !important;
+    }
+
+    /* A4 professional PDF format */
+    @page {
+      size: A4 portrait;
+      margin: 10mm;
+    }
+
+    @media print {
+      body {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      tr {
+        page-break-inside: avoid !important;
+      }
+      /* Last page footer at bottom */
+      [data-employee].last-section {
+        min-height: calc(100vh - 20mm) !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: space-between !important;
+      }
+    }
+
+    /* Hide repeated page header on continuation pages (not first page of employee) */
+    [data-employee] .continuation-header {
+      display: none !important;
+    }
+  </style>
+</head>
+
+<body class="">
+  <div id="root"></div>
+
+  <script>
+    const observer = new MutationObserver(function() {
+      // Remove spacer divs
+      document.querySelectorAll('[class*="min-h-"]').forEach(function(el) {
+        if (!el.querySelector('table') && !el.querySelector('img')) {
+          el.style.minHeight = '0';
+        }
+      });
+
+      // Group sections by employee
+      var sections = document.querySelectorAll('[data-employee]');
+      var seen = {};
+      sections.forEach(function(el, i) {
+        var empId = el.getAttribute('data-employee');
+
+        if (seen[empId]) {
+          // Continuation page — hide header only, keep table and footer
+          var children = Array.from(el.children);
+          // First child is always the header component — hide it
+          if (children.length > 0) {
+            children[0].style.display = 'none';
+          }
+        } else {
+          seen[empId] = true;
+        }
+
+        // Keep page-break on all sections except the very last
+        if (i < sections.length - 1) {
+          el.style.pageBreakAfter = 'always';
+          el.style.breakAfter = 'page';
+          el.classList.remove('last-section');
+        } else {
+          el.style.pageBreakAfter = 'auto';
+          el.style.breakAfter = 'auto';
+          el.classList.add('last-section');
+        }
+      });
+    });
+    observer.observe(document.getElementById('root'), { childList: true, subtree: true });
+  </script>
+</body>
+
+</html>
