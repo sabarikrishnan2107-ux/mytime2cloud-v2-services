@@ -88,4 +88,4 @@ app.post("/pdf", async (req, res) => {
 });
 
 const PORT = 3002;
-app.listen(PORT, () => console.log(`PDF service running on http://localhost:${PORT}`));
+app.listen(PORT, "0.0.0.0", () => console.log(`PDF service running on http://0.0.0.0:${PORT}`));
