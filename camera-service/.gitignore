@@ -1,0 +1,62 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
+venv/
+env/
+.venv/
+ENV/
+
+# Environment files (secrets)
+.env
+.env.local
+.env.live
+.env.production
+.env.development
+.env.staging
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+logs/
+
+# ArcFace model files (large, downloaded automatically on first run)
+models/
+*.onnx
+*.zip
+
+# InsightFace cache
+~/.insightface/
+
+# Test artifacts
+tests/__pycache__/
+.coverage
+htmlcov/
+
+# PM2
+.pm2/
+ecosystem.config.local.js
+
+# Local database dumps
+*.sql
+*.dump
